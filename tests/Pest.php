@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
 use Saloon\Config;
+use Saloon\Http\Faking\MockClient;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -20,7 +21,44 @@ pest()->extend(TestCase::class)
 
         $this->freezeTime();
     })
+    ->afterEach(function (): void {
+        MockClient::destroyGlobal();
+    })
     ->in('Feature', 'Unit');
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function pixelforgeGeneration(array $overrides = []): array
+{
+    return array_replace([
+        'id' => 'gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K',
+        'object' => 'generation',
+        'status' => 'queued',
+        'prompt' => 'A lighthouse on a cliff at dawn, oil painting',
+        'size' => '1536x1024',
+        'quality' => 'high',
+        'reference_images' => [],
+        'metadata' => [],
+        'image_url' => null,
+        'image_url_expires_at' => null,
+        'usage' => null,
+        'rates' => pixelforgeRates(),
+        'error' => null,
+        'created_at' => '2026-11-04T14:03:11Z',
+        'started_at' => null,
+        'completed_at' => null,
+    ], $overrides);
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function pixelforgeError(string $code, string $type = 'rate_limit_error'): array
+{
+    return ['error' => ['type' => $type, 'code' => $code, 'message' => "Pixelforge says {$code}."]];
+}
 
 /**
  * @return array<string, mixed>
