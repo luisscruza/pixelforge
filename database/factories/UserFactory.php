@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  */
 final class UserFactory extends Factory
 {
-    private static ?string $password;
+    private static string $password;
 
     /**
      * @return array<string, mixed>
