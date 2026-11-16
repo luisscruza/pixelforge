@@ -6,30 +6,29 @@ import { cn } from '@/lib/utils';
 
 const props = defineProps<{
     difference: string | null;
-    compact?: boolean;
 }>();
 
 const state = computed(() => {
     if (props.difference === null) {
         return {
             icon: CircleDashed,
-            label: 'No usage data',
-            tone: 'text-muted-foreground',
+            label: 'No billing data',
+            tone: 'bg-muted text-muted-foreground',
         };
     }
 
     if (isZero(props.difference)) {
         return {
             icon: CircleCheck,
-            label: 'Matches Pixelforge',
-            tone: 'text-success',
+            label: 'Reconciled',
+            tone: 'bg-accent text-accent-foreground',
         };
     }
 
     return {
         icon: TriangleAlert,
-        label: `Off by ${formatUsd(props.difference, 6)}`,
-        tone: 'text-destructive',
+        label: `Off by ${formatUsd(props.difference)}`,
+        tone: 'bg-destructive/10 text-destructive',
     };
 });
 </script>
@@ -38,13 +37,12 @@ const state = computed(() => {
     <span
         :class="
             cn(
-                'inline-flex items-center gap-1 font-mono text-[11px] whitespace-nowrap',
+                'inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap',
                 state.tone,
             )
         "
-        :title="state.label"
     >
-        <component :is="state.icon" class="size-3.5 shrink-0" />
-        <span v-if="!compact">{{ state.label }}</span>
+        <component :is="state.icon" class="size-3 shrink-0" />
+        {{ state.label }}
     </span>
 </template>

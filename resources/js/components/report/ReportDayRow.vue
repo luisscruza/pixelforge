@@ -7,11 +7,17 @@ import { formatDay } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { SpendReportDay } from '@/types/generation';
 
-defineProps<{
+const props = defineProps<{
     day: SpendReportDay;
 }>();
 
 const expanded = ref(false);
+
+function toggle(): void {
+    if (props.day.generations > 0) {
+        expanded.value = !expanded.value;
+    }
+}
 </script>
 
 <template>
@@ -20,67 +26,55 @@ const expanded = ref(false);
             cn(
                 'border-t transition-colors',
                 day.generations > 0
-                    ? 'cursor-pointer hover:bg-accent/40'
+                    ? 'cursor-pointer hover:bg-muted/60'
                     : 'text-muted-foreground',
             )
         "
         :aria-expanded="day.generations > 0 ? expanded : undefined"
-        @click="day.generations > 0 && (expanded = !expanded)"
+        @click="toggle"
     >
-        <td class="py-2.5 pl-4">
+        <td class="py-2.5 pl-5">
             <span class="inline-flex items-center gap-1.5">
                 <ChevronRight
                     :class="
                         cn(
-                            'size-3.5 transition',
+                            'size-3.5 text-muted-foreground transition',
                             expanded && 'rotate-90',
                             day.generations === 0 && 'invisible',
                         )
                     "
                 />
-                <span class="font-mono text-xs">{{ formatDay(day.date) }}</span>
+                {{ formatDay(day.date) }}
             </span>
         </td>
-        <td class="text-right font-mono text-xs tabular-nums">
-            {{ day.generations }}
+        <td class="px-3 text-right">{{ day.generations }}</td>
+        <td class="px-3 text-right"><MoneyValue :value="day.charged" /></td>
+        <td class="px-3 text-right">
+            <MoneyValue :value="day.provider_cost" />
         </td>
-        <td class="text-right text-xs">
-            <MoneyValue :value="day.charged" :decimals="6" />
+        <td class="px-3 text-right"><MoneyValue :value="day.profit" /></td>
+        <td class="px-3 text-right">
+            <MoneyValue :value="day.pixelforge_cost" />
         </td>
-        <td class="text-right text-xs">
-            <MoneyValue :value="day.provider_cost" :decimals="6" />
-        </td>
-        <td class="text-right text-xs">
-            <MoneyValue :value="day.profit" :decimals="6" />
-        </td>
-        <td class="text-right text-xs">
-            <MoneyValue :value="day.pixelforge_cost" :decimals="6" />
-        </td>
-        <td class="pr-4 text-right">
-            <ReconciliationBadge :difference="day.difference" compact />
+        <td class="pr-5 text-right">
+            <ReconciliationBadge :difference="day.difference" />
         </td>
     </tr>
     <tr
         v-for="user in expanded ? day.users : []"
         :key="`${day.date}-${user.user_id}`"
-        class="bg-muted/40 text-xs"
+        class="bg-muted/50 text-muted-foreground"
     >
-        <td class="py-2 pl-10">
-            <span class="font-medium">{{ user.name }}</span>
-            <span class="ml-1.5 text-muted-foreground">{{ user.email }}</span>
+        <td class="py-2 pl-11">
+            <span class="text-ink">{{ user.name }}</span>
+            <span class="ml-1.5 text-xs">{{ user.email }}</span>
         </td>
-        <td class="text-right font-mono tabular-nums">
-            {{ user.generations }}
+        <td class="px-3 text-right">{{ user.generations }}</td>
+        <td class="px-3 text-right"><MoneyValue :value="user.charged" /></td>
+        <td class="px-3 text-right">
+            <MoneyValue :value="user.provider_cost" />
         </td>
-        <td class="text-right">
-            <MoneyValue :value="user.charged" :decimals="6" />
-        </td>
-        <td class="text-right">
-            <MoneyValue :value="user.provider_cost" :decimals="6" />
-        </td>
-        <td class="text-right">
-            <MoneyValue :value="user.profit" :decimals="6" />
-        </td>
+        <td class="px-3 text-right"><MoneyValue :value="user.profit" /></td>
         <td colspan="2" />
     </tr>
 </template>
