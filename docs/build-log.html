@@ -1,0 +1,1364 @@
+<title>Pixelforge Build Logic</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+/>
+<style>
+    /* Layout: a single reading column on a blueprint grid; each step is a bordered panel with a status chip and a mono "spec" strip. */
+    :root {
+        --blue: #2a5bf5;
+        --blue-ink: #1d43c2;
+        --blue-wash: #eef2ff;
+        --bg: #f6f7fb;
+        --panel: #ffffff;
+        --fg: #12162b;
+        --muted: #5b6283;
+        --line: #d9ddee;
+        --grid: rgba(42, 91, 245, 0.07);
+        --ok: #138a52;
+        --ok-wash: #e4f6ec;
+        --warn: #b26a00;
+        --warn-wash: #fff3dd;
+        --code-bg: #f1f3fa;
+        --display: 'Inter Tight', 'Inter', system-ui, sans-serif;
+        --body: 'Inter Tight', 'Inter', system-ui, sans-serif;
+        --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+            --blue: #7a9bff;
+            --blue-ink: #a9bdff;
+            --blue-wash: #18214a;
+            --bg: #0b0e1c;
+            --panel: #121731;
+            --fg: #e6e9f7;
+            --muted: #9aa1c4;
+            --line: #262d52;
+            --grid: rgba(122, 155, 255, 0.07);
+            --ok: #4cd08e;
+            --ok-wash: #10291d;
+            --warn: #f0b04a;
+            --warn-wash: #2e2310;
+            --code-bg: #0e1328;
+            color-scheme: dark;
+        }
+    }
+    :root[data-theme='dark'] {
+        --blue: #7a9bff;
+        --blue-ink: #a9bdff;
+        --blue-wash: #18214a;
+        --bg: #0b0e1c;
+        --panel: #121731;
+        --fg: #e6e9f7;
+        --muted: #9aa1c4;
+        --line: #262d52;
+        --grid: rgba(122, 155, 255, 0.07);
+        --ok: #4cd08e;
+        --ok-wash: #10291d;
+        --warn: #f0b04a;
+        --warn-wash: #2e2310;
+        --code-bg: #0e1328;
+        color-scheme: dark;
+    }
+    * {
+        box-sizing: border-box;
+    }
+    body {
+        background-color: var(--bg);
+        background-image:
+            linear-gradient(var(--grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 32px 32px;
+        color: var(--fg);
+        font: 16px/1.6 var(--body);
+    }
+    .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding-block: 56px 96px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        display: grid;
+        gap: 28px;
+    }
+    .eyebrow {
+        font: 500 12px/1 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--blue);
+    }
+    h1,
+    h2,
+    h3 {
+        font-family: var(--display);
+        text-wrap: balance;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+    h1 {
+        font-size: clamp(34px, 6vw, 52px);
+        line-height: 1.05;
+        font-weight: 700;
+    }
+    h2 {
+        font-size: 26px;
+        line-height: 1.2;
+        font-weight: 650;
+    }
+    h3 {
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+    p {
+        margin: 0;
+        max-width: 68ch;
+    }
+    .lede {
+        color: var(--muted);
+        font-size: 18px;
+    }
+    header {
+        display: grid;
+        gap: 16px;
+    }
+
+    .progress {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+    }
+    .progress a {
+        display: grid;
+        gap: 6px;
+        text-decoration: none;
+        color: var(--muted);
+        font: 500 11px/1.3 var(--mono);
+    }
+    .progress a span.bar {
+        height: 6px;
+        border-radius: 2px;
+        background: var(--line);
+    }
+    .progress a.done span.bar {
+        background: var(--blue);
+    }
+    .progress a.active span.bar {
+        background: repeating-linear-gradient(
+            90deg,
+            var(--blue) 0 6px,
+            transparent 6px 10px
+        );
+        outline: 1px solid var(--blue);
+    }
+    .progress a:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+    }
+
+    .step {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 28px;
+        display: grid;
+        gap: 18px;
+        min-width: 0;
+    }
+    .step::before,
+    .step::after {
+        content: '';
+        position: absolute;
+        width: 9px;
+        height: 9px;
+        border-color: var(--blue);
+        border-style: solid;
+        opacity: 0.7;
+    }
+    .step::before {
+        top: -5px;
+        left: -5px;
+        border-width: 1px 0 0 1px;
+    }
+    .step::after {
+        bottom: -5px;
+        right: -5px;
+        border-width: 0 1px 1px 0;
+    }
+    .step-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 14px;
+    }
+    .num {
+        font: 500 13px/1 var(--mono);
+        color: var(--blue);
+    }
+    .chip {
+        font: 500 11px/1 var(--mono);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 5px 8px;
+        border-radius: 3px;
+        margin-left: auto;
+    }
+    .chip.done {
+        color: var(--ok);
+        background: var(--ok-wash);
+    }
+    .chip.active {
+        color: var(--warn);
+        background: var(--warn-wash);
+    }
+    .chip.todo {
+        color: var(--muted);
+        background: var(--code-bg);
+    }
+
+    .why {
+        border-left: 2px dashed var(--blue);
+        padding: 4px 0 4px 16px;
+        color: var(--fg);
+    }
+    .why strong {
+        color: var(--blue-ink);
+        font-weight: 600;
+    }
+    ul {
+        margin: 0;
+        padding-left: 20px;
+        display: grid;
+        gap: 8px;
+        max-width: 70ch;
+    }
+    li::marker {
+        color: var(--blue);
+    }
+    code,
+    .mono {
+        font-family: var(--mono);
+        font-size: 0.86em;
+    }
+    code {
+        background: var(--code-bg);
+        padding: 1px 5px;
+        border-radius: 3px;
+    }
+    .commit {
+        font: 400 12.5px/1.5 var(--mono);
+        color: var(--muted);
+        border-top: 1px dashed var(--line);
+        padding-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+    }
+    .commit b {
+        color: var(--fg);
+        font-weight: 500;
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        min-width: 560px;
+    }
+    th,
+    td {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+    }
+    th {
+        font: 500 11px/1.2 var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        background: var(--code-bg);
+    }
+    td.n {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        white-space: nowrap;
+    }
+    tr:last-child td {
+        border-bottom: 0;
+    }
+    tr.total td {
+        font-weight: 600;
+        background: var(--blue-wash);
+    }
+
+    .grid2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+    }
+    .card {
+        border: 1px dashed var(--line);
+        border-radius: 4px;
+        padding: 16px;
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        min-width: 0;
+    }
+    .card h3 {
+        font-size: 15px;
+    }
+    .card p {
+        color: var(--muted);
+        font-size: 14.5px;
+    }
+
+    .diagram {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--code-bg);
+        padding: 16px;
+    }
+    .diagram svg {
+        display: block;
+        min-width: 640px;
+        width: 100%;
+        height: auto;
+    }
+    .diagram text {
+        font-family: var(--mono);
+        font-size: 12px;
+        fill: var(--fg);
+    }
+    .diagram .lbl {
+        fill: var(--muted);
+        font-size: 11px;
+    }
+    .diagram .box {
+        fill: var(--panel);
+        stroke: var(--line);
+    }
+    .diagram .boxb {
+        fill: var(--blue-wash);
+        stroke: var(--blue);
+    }
+    .diagram .arrow {
+        stroke: var(--blue);
+        stroke-width: 1.4;
+        fill: none;
+    }
+    .diagram .dash {
+        stroke: var(--muted);
+        stroke-width: 1.2;
+        fill: none;
+        stroke-dasharray: 4 4;
+    }
+    .diagram .bad {
+        stroke: var(--warn);
+        stroke-width: 1.4;
+        fill: none;
+        stroke-dasharray: 3 3;
+    }
+    .diagram .head {
+        fill: var(--blue);
+    }
+    .diagram .headm {
+        fill: var(--muted);
+    }
+    .diagram .headw {
+        fill: var(--warn);
+    }
+
+    footer {
+        color: var(--muted);
+        font-size: 14px;
+    }
+    @media (max-width: 560px) {
+        .step {
+            padding: 20px;
+        }
+        .progress {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .chip {
+            margin-left: 0;
+        }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .progress a span.bar {
+            transition: background 0.2s;
+        }
+    }
+</style>
+
+<div class="wrap">
+    <header>
+        <div class="eyebrow">Pixelforge assessment · build log</div>
+        <h1>How each step works, and why it's built that way</h1>
+        <p class="lede">
+            A Laravel + Inertia + Vue app that sends image generations to
+            Pixelforge, charges users cost + 25%, and stays correct when the
+            provider fails, retries, or sends webhooks twice and out of order.
+            Updated as each step lands.
+        </p>
+        <nav class="progress" aria-label="Build progress">
+            <a href="#s1" class="done"><span class="bar"></span>1 Tooling</a>
+            <a href="#s2" class="done"><span class="bar"></span>2 Pricing</a>
+            <a href="#s3" class="done"
+                ><span class="bar"></span>3 Models + client</a
+            >
+            <a href="#s4" class="done"
+                ><span class="bar"></span>4 Submit + webhooks</a
+            >
+            <a href="#s5" class="done"
+                ><span class="bar"></span>5 Balances + report</a
+            >
+            <a href="#s6" class="done"><span class="bar"></span>6 UI</a>
+            <a href="#s7"><span class="bar"></span>7 Verify + deploy</a>
+        </nav>
+    </header>
+
+    <section class="step" id="s1">
+        <div class="step-head">
+            <span class="num">01</span>
+            <h2>Tooling and guardrails</h2>
+            <span class="chip done">Done</span>
+        </div>
+        <p class="why">
+            <strong>Why first:</strong> the strictness has to be in place before
+            the domain code is written. Turning PHPStan to max on finished code
+            means rewriting it; turning it on first means every class is typed
+            correctly from the start.
+        </p>
+        <ul>
+            <li>
+                <b>Postgres</b> instead of SQLite. SQLite has no real decimal
+                type: <code>DECIMAL(20,12)</code> is stored as a float and
+                <code>SUM()</code> drifts. Postgres keeps money exact in storage
+                and in aggregates.
+            </li>
+            <li>
+                <b>PHPStan level max + Larastan.</b> Any value from the API is
+                <code>mixed</code> until proven otherwise, which forces explicit
+                parsing at every boundary.
+            </li>
+            <li>
+                <b>Rector + Pint</b> using the nunomaduro starter kit's rules
+                (final classes, strict types, strict comparison), plus
+                <code>Pint/phpdoc_type_annotations_only</code>, so docblocks
+                carry types only.
+            </li>
+            <li>
+                <b>nunomaduro/essentials</b>: immutable dates, strict models,
+                unguarded models, fake sleep and blocked stray HTTP in tests.
+            </li>
+            <li>
+                <b>Saloon</b> for outbound HTTP. Each Pixelforge endpoint
+                becomes a typed request class instead of ad-hoc
+                <code>Http::</code> calls.
+            </li>
+        </ul>
+        <div class="commit">
+            <b>505deb8</b> chore: set up postgres, strict tooling, saloon and
+            essentials <b>24824c2</b> chore: tighten user factory password type
+            for phpstan max
+        </div>
+    </section>
+
+    <section class="step" id="s2">
+        <div class="step-head">
+            <span class="num">02</span>
+            <h2>Exact pricing</h2>
+            <span class="chip done">Done</span>
+        </div>
+        <p class="why">
+            <strong>The core rule:</strong> Pixelforge never returns a price,
+            only token counts, and its costs are fractions of a cent. We compute
+            every amount ourselves with exact decimals, and never round in
+            storage.
+        </p>
+        <div class="grid2">
+            <div class="card">
+                <h3><code>CalculateProviderCost</code></h3>
+                <p>
+                    What Pixelforge charges us: Σ tokens × rate ÷ 1,000,000. It
+                    takes the rates as an argument, because each generation is
+                    billed at the rates fixed when it was created, not today's.
+                </p>
+            </div>
+            <div class="card">
+                <h3><code>ApplyMarkup</code></h3>
+                <p>
+                    What the user pays: provider cost × 1.25, kept to 12
+                    decimals. A 9-decimal cost × a 2-decimal markup needs at
+                    most 11, so 12 holds it exactly.
+                </p>
+            </div>
+            <div class="card">
+                <h3><code>EstimateGenerationCost</code></h3>
+                <p>
+                    Two numbers for the form: an <em>expected</em> price
+                    (reasoning at the midpoint of its range) and a
+                    <em>maximum</em> price (+15% text tokens, max reasoning).
+                    The maximum is what step 5 reserves from the balance.
+                </p>
+            </div>
+            <div class="card">
+                <h3><code>Decimal::from()</code></h3>
+                <p>
+                    The only place untrusted input becomes a
+                    <code>BcMath\Number</code>. Anything non-numeric throws, so
+                    a malformed payload can't silently become $0.
+                </p>
+            </div>
+        </div>
+        <h3>The docs' worst case, reproduced in a test</h3>
+        <p>
+            High quality, 1536×1024, a 400-character prompt and 2 reference
+            images, with text and reasoning tokens at their maximum:
+        </p>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Token type</th>
+                        <th>Count</th>
+                        <th>Rate / 1M</th>
+                        <th>Cost (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Input text: ceil(400 ÷ 4) = 100, +15%</td>
+                        <td class="n">115</td>
+                        <td class="n">5.00</td>
+                        <td class="n">0.000575000</td>
+                    </tr>
+                    <tr>
+                        <td>Input image: 2 × 765</td>
+                        <td class="n">1,530</td>
+                        <td class="n">10.00</td>
+                        <td class="n">0.015300000</td>
+                    </tr>
+                    <tr>
+                        <td>Output: high, 1536×1024 (exact)</td>
+                        <td class="n">6,450</td>
+                        <td class="n">40.00</td>
+                        <td class="n">0.258000000</td>
+                    </tr>
+                    <tr>
+                        <td>Reasoning: high-quality maximum</td>
+                        <td class="n">8,000</td>
+                        <td class="n">12.50</td>
+                        <td class="n">0.100000000</td>
+                    </tr>
+                    <tr class="total">
+                        <td>Provider cost</td>
+                        <td></td>
+                        <td></td>
+                        <td class="n">0.373875000</td>
+                    </tr>
+                    <tr class="total">
+                        <td>User price (× 1.25)</td>
+                        <td></td>
+                        <td></td>
+                        <td class="n">0.467343750000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            Why not floats: <code>0.1 + 0.2</code> in floating point is
+            <code>0.30000000000000004</code>. Across thousands of generations
+            that drift would make our provider costs disagree with Pixelforge's
+            <code>/v1/usage</code>, which the reviewers check.
+            <code>BcMath\Number</code> gives <code>0.3</code>.
+        </p>
+        <div class="commit">
+            <b>3d92370</b> feat: add exact token pricing and cost estimation
+        </div>
+    </section>
+
+    <section class="step" id="s3">
+        <div class="step-head">
+            <span class="num">03</span>
+            <h2>Models and the Pixelforge client</h2>
+            <span class="chip done">Done</span>
+        </div>
+        <p class="why">
+            <strong>Outbox and inbox:</strong> we save our own record
+            <em>before</em> talking to Pixelforge, and save every webhook
+            <em>before</em> acting on it. Neither the outgoing request nor an
+            incoming event can be lost or applied twice.
+        </p>
+        <div class="grid2">
+            <div class="card">
+                <h3><code>generations</code> (the outbox)</h3>
+                <p>
+                    Created as <code>pending</code> in the same transaction as
+                    the credit hold. Its <code>uuid</code> is the
+                    <code>Idempotency-Key</code> and is sent in
+                    <code>metadata</code>, so a retried POST returns the same
+                    Pixelforge generation and a webhook can find our row even
+                    before the POST returns.
+                </p>
+            </div>
+            <div class="card">
+                <h3><code>webhook_events</code> (the inbox)</h3>
+                <p>
+                    The primary key is Pixelforge's <code>evt_</code> id. A
+                    second delivery of the same event fails the insert at the
+                    database level, so it can never be recorded twice, even with
+                    two deliveries arriving at the same moment.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Money columns</h3>
+                <p>
+                    <code>estimated_price</code>, <code>maximum_price</code>,
+                    <code>provider_cost</code> and <code>price</code> are all
+                    <code>DECIMAL(20,12)</code>, read back through an
+                    <code>AsNumber</code> cast as <code>BcMath\Number</code>. A
+                    test round-trips <code>0.467343750001</code> to the last
+                    digit.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Status only moves forward</h3>
+                <p>
+                    <code
+                        >pending → queued → processing → succeeded |
+                        failed</code
+                    >. <code>GenerationStatus::canTransitionTo()</code> refuses
+                    any step backwards and anything out of a final state. This
+                    is the rule that handles out-of-order webhooks.
+                </p>
+            </div>
+        </div>
+        <h3>The Saloon client</h3>
+        <ul>
+            <li>
+                <code>PixelforgeConnector</code> holds the base URL, bearer key
+                and timeouts (5s connect, 15s request), and always throws on
+                4xx/5xx. A failed call can never look like a success.
+            </li>
+            <li>
+                Typed methods: <code>createGeneration()</code>,
+                <code>generation()</code>, <code>pricing()</code> and
+                <code>usage()</code>. Each request class turns JSON into a DTO
+                (<code>GenerationData</code>, <code>PricingData</code>,
+                <code>UsageDay</code>), so no raw arrays leak into the app.
+            </li>
+            <li>
+                <code>createGeneration()</code> always sends the
+                <code>Idempotency-Key</code> header and our
+                <code>generation_uuid</code> in <code>metadata</code>. Empty
+                metadata is sent as <code>{}</code>, not <code>[]</code>,
+                because Pixelforge rejects unexpected shapes with a 422.
+            </li>
+            <li>
+                <code>PixelforgeException</code> carries <code>errorCode</code>,
+                <code>retryAfterSeconds</code> and <code>isRetryable()</code>.
+                Rate limits, concurrency limits, overloads and any 5xx are
+                retryable. Policy blocks, the daily quota, a bad key and
+                idempotency clashes are not, because retrying can't fix them.
+            </li>
+            <li>
+                A test found that a non-JSON error body (a proxy's
+                <code>502 Bad Gateway</code>) crashed the parser. It now falls
+                back to <code>http_502</code> and is treated as retryable.
+            </li>
+            <li>
+                <code>GetPricing</code> caches <code>/v1/pricing</code> for 5
+                minutes, so the live estimate doesn't spend the 60
+                requests/minute that generations need. It was checked against
+                the live endpoint.
+            </li>
+        </ul>
+        <div class="commit">
+            <b>dae2ae7</b> feat: add generation and webhook event models
+            <b>dfb1122</b> feat: add saloon client for the pixelforge api
+        </div>
+    </section>
+
+    <section class="step" id="s4">
+        <div class="step-head">
+            <span class="num">04</span>
+            <h2>Submission, webhooks and reconciliation</h2>
+            <span class="chip done">Done</span>
+        </div>
+        <p class="why">
+            <strong>Goal:</strong> reach the right final state no matter how
+            Pixelforge behaves: overloaded, rate-limited, a webhook before the
+            POST returns, duplicates, out of order, or no webhook at all.
+        </p>
+        <div
+            class="diagram"
+            role="img"
+            aria-label="Flow: the user submits, a row and credit hold are written in one transaction, a queued job posts to Pixelforge with the idempotency key, webhooks land in the inbox and are applied by a job, and a scheduled poller covers missing webhooks."
+        >
+            <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker
+                        id="a"
+                        viewBox="0 0 10 10"
+                        refX="9"
+                        refY="5"
+                        markerWidth="7"
+                        markerHeight="7"
+                        orient="auto-start-reverse"
+                    >
+                        <path d="M0 0L10 5L0 10z" class="head" />
+                    </marker>
+                    <marker
+                        id="m"
+                        viewBox="0 0 10 10"
+                        refX="9"
+                        refY="5"
+                        markerWidth="7"
+                        markerHeight="7"
+                        orient="auto-start-reverse"
+                    >
+                        <path d="M0 0L10 5L0 10z" class="headm" />
+                    </marker>
+                    <marker
+                        id="w"
+                        viewBox="0 0 10 10"
+                        refX="9"
+                        refY="5"
+                        markerWidth="7"
+                        markerHeight="7"
+                        orient="auto-start-reverse"
+                    >
+                        <path d="M0 0L10 5L0 10z" class="headw" />
+                    </marker>
+                </defs>
+                <rect
+                    x="10"
+                    y="20"
+                    width="150"
+                    height="56"
+                    rx="4"
+                    class="box"
+                />
+                <text x="85" y="44" text-anchor="middle">User submits</text>
+                <text x="85" y="62" text-anchor="middle" class="lbl">
+                    GenerationController@store
+                </text>
+
+                <rect
+                    x="210"
+                    y="20"
+                    width="200"
+                    height="56"
+                    rx="4"
+                    class="boxb"
+                />
+                <text x="310" y="44" text-anchor="middle">DB transaction</text>
+                <text x="310" y="62" text-anchor="middle" class="lbl">
+                    row = pending + hold max price
+                </text>
+
+                <rect
+                    x="460"
+                    y="20"
+                    width="160"
+                    height="56"
+                    rx="4"
+                    class="box"
+                />
+                <text x="540" y="44" text-anchor="middle">
+                    SubmitGeneration job
+                </text>
+                <text x="540" y="62" text-anchor="middle" class="lbl">
+                    afterCommit
+                </text>
+
+                <rect
+                    x="600"
+                    y="140"
+                    width="150"
+                    height="56"
+                    rx="4"
+                    class="boxb"
+                />
+                <text x="675" y="164" text-anchor="middle">Pixelforge</text>
+                <text x="675" y="182" text-anchor="middle" class="lbl">
+                    POST /v1/generations
+                </text>
+
+                <rect
+                    x="300"
+                    y="140"
+                    width="190"
+                    height="56"
+                    rx="4"
+                    class="box"
+                />
+                <text x="395" y="164" text-anchor="middle">
+                    Webhook endpoint
+                </text>
+                <text x="395" y="182" text-anchor="middle" class="lbl">
+                    verify HMAC · insert evt_
+                </text>
+
+                <rect
+                    x="40"
+                    y="140"
+                    width="200"
+                    height="56"
+                    rx="4"
+                    class="box"
+                />
+                <text x="140" y="164" text-anchor="middle">
+                    ApplyGenerationSnapshot
+                </text>
+                <text x="140" y="182" text-anchor="middle" class="lbl">
+                    row lock · forward only
+                </text>
+
+                <rect
+                    x="40"
+                    y="250"
+                    width="200"
+                    height="56"
+                    rx="4"
+                    class="box"
+                />
+                <text x="140" y="274" text-anchor="middle">
+                    Settle on success
+                </text>
+                <text x="140" y="292" text-anchor="middle" class="lbl">
+                    charge actual · release hold
+                </text>
+
+                <rect
+                    x="420"
+                    y="250"
+                    width="200"
+                    height="56"
+                    rx="4"
+                    class="box"
+                />
+                <text x="520" y="274" text-anchor="middle">
+                    Reconcile (every min)
+                </text>
+                <text x="520" y="292" text-anchor="middle" class="lbl">
+                    re-dispatch pending · poll stuck
+                </text>
+
+                <path d="M160 48H205" class="arrow" marker-end="url(#a)" />
+                <path d="M410 48H455" class="arrow" marker-end="url(#a)" />
+                <path
+                    d="M620 60 C 680 80, 690 100, 680 136"
+                    class="arrow"
+                    marker-end="url(#a)"
+                />
+                <text x="696" y="104" class="lbl">Idempotency-Key</text>
+                <path d="M600 168H495" class="arrow" marker-end="url(#a)" />
+                <text x="510" y="160" class="lbl">webhook</text>
+                <path d="M300 168H245" class="arrow" marker-end="url(#a)" />
+                <text x="252" y="160" class="lbl">job</text>
+                <path d="M140 196V245" class="arrow" marker-end="url(#a)" />
+                <path
+                    d="M520 250 C 520 220, 300 220, 245 190"
+                    class="dash"
+                    marker-end="url(#m)"
+                />
+                <text x="350" y="232" class="lbl">
+                    GET /v1/generations/{id}
+                </text>
+                <path
+                    d="M600 196 C 600 230, 610 230, 600 248"
+                    class="bad"
+                    marker-end="url(#w)"
+                />
+                <text x="612" y="232" class="lbl">no webhook?</text>
+            </svg>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pixelforge says</th>
+                        <th>What we do</th>
+                        <th>User is charged</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>429 rate_limit_exceeded</code></td>
+                        <td>
+                            Release the job after <code>Retry-After</code>, with
+                            growing backoff, capped at a few attempts
+                        </td>
+                        <td>Nothing yet</td>
+                    </tr>
+                    <tr>
+                        <td><code>429 concurrency_limit_exceeded</code></td>
+                        <td>
+                            Same; the row stays "queued" in our UI while it
+                            waits
+                        </td>
+                        <td>Nothing yet</td>
+                    </tr>
+                    <tr>
+                        <td><code>503 overloaded</code></td>
+                        <td>Retry with the same Idempotency-Key</td>
+                        <td>Nothing yet</td>
+                    </tr>
+                    <tr>
+                        <td><code>400 content_policy_violation</code></td>
+                        <td>Mark failed and show the reason</td>
+                        <td>$0, hold released</td>
+                    </tr>
+                    <tr>
+                        <td><code>429 daily_limit_exceeded</code></td>
+                        <td>Mark failed; retrying today can't help</td>
+                        <td>$0, hold released</td>
+                    </tr>
+                    <tr>
+                        <td><code>generation.failed</code></td>
+                        <td>Mark failed with the error code</td>
+                        <td>$0, hold released</td>
+                    </tr>
+                    <tr>
+                        <td><code>generation.succeeded</code></td>
+                        <td>
+                            Store usage, compute cost at the generation's own
+                            rates
+                        </td>
+                        <td>Actual cost × 1.25, once</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <ul>
+            <li>
+                <b>Duplicates:</b> the event insert fails, so we answer 2xx and
+                do nothing.
+            </li>
+            <li>
+                <b>Out of order:</b> a late <code>processing</code> after
+                <code>succeeded</code> is refused by the forward-only rule.
+            </li>
+            <li>
+                <b>Webhook before the POST returns:</b> we match on
+                <code>metadata.generation_uuid</code>, not just
+                <code>gen_</code>.
+            </li>
+            <li>
+                <b>Signatures:</b> HMAC-SHA256 of <code>t.body</code> on the raw
+                body, compared in constant time, rejected if more than 5 minutes
+                off in either direction.
+            </li>
+        </ul>
+        <h3>How it was built: four pieces, one commit each</h3>
+        <div class="grid2">
+            <div class="card">
+                <h3><code>ApplyGenerationSnapshot</code></h3>
+                <p>
+                    The only code that changes a generation's state. Webhooks,
+                    the submit response and polling all go through it. It locks
+                    the row with <code>SELECT … FOR UPDATE</code>, so two
+                    simultaneous deliveries apply one after the other, and it
+                    prices a success once, at the generation's own rates.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Submission</h3>
+                <p>
+                    <code>CreateGeneration</code> writes the pending row and
+                    dispatches the job after commit.
+                    <code>SubmitGenerationJob</code> waits
+                    <code>max(Retry-After, 2^attempt)</code> seconds, capped at
+                    60, and keeps trying for 10 minutes. Then it marks the row
+                    <code>needs_reconciliation</code>, never
+                    <code>failed</code>. A duplicate job sends nothing because
+                    the row has already left <code>pending</code>.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Webhooks</h3>
+                <p>
+                    A middleware checks the signature before anything else runs.
+                    The controller validates the event's shape and delegates.
+                    <code>insertOrIgnore</code> on the event id means only a
+                    first delivery queues processing. We reply 204 immediately,
+                    well inside Pixelforge's 10-second limit.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Reconciliation</h3>
+                <p>
+                    <code>pixelforge:reconcile</code> runs every minute, never
+                    overlapping. It re-queues <code>submitting</code>/<code
+                        >unknown</code
+                    >
+                    rows idle for 2+ minutes, re-POSTs
+                    <code>needs_reconciliation</code> rows every 15 minutes with
+                    the same key, and polls up to 20 stuck in-flight rows. It
+                    stops as soon as Pixelforge rate-limits it.
+                </p>
+            </div>
+        </div>
+        <h3>A timeout is not a failure</h3>
+        <p>
+            When our POST times out, Pixelforge might never have received it,
+            might have created the generation, or might have already finished
+            it. We can't tell, so we never record that as <code>failed</code>.
+            The provider's lifecycle (<code>status</code>) and our submission's
+            state (<code>submission_status</code>) are separate columns, and
+            only Pixelforge's own answer moves <code>status</code>.
+        </p>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Situation</th>
+                        <th>status</th>
+                        <th>submission_status</th>
+                        <th>Credits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Saved, POST not answered yet</td>
+                        <td><code>pending</code></td>
+                        <td><code>submitting</code></td>
+                        <td>Held</td>
+                    </tr>
+                    <tr>
+                        <td>Timeout, or a 5xx with no Pixelforge error code</td>
+                        <td><code>pending</code></td>
+                        <td><code>unknown</code></td>
+                        <td>Held</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Coded 429 / 503 <code>overloaded</code> (Pixelforge
+                            answered, created nothing)
+                        </td>
+                        <td><code>pending</code></td>
+                        <td>unchanged, retried</td>
+                        <td>Held</td>
+                    </tr>
+                    <tr>
+                        <td>10-minute retry window used up</td>
+                        <td><code>pending</code></td>
+                        <td><code>needs_reconciliation</code></td>
+                        <td>Held</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Pixelforge confirms (POST response, replay, webhook
+                            or poll)
+                        </td>
+                        <td><code>queued</code> → <code>processing</code></td>
+                        <td><code>accepted</code></td>
+                        <td>Held</td>
+                    </tr>
+                    <tr>
+                        <td>Pixelforge: succeeded</td>
+                        <td><code>succeeded</code></td>
+                        <td><code>accepted</code></td>
+                        <td>Actual × 1.25, once</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Pixelforge: failed, or a definitive refusal (400
+                            policy, daily quota…)
+                        </td>
+                        <td><code>failed</code></td>
+                        <td><code>accepted</code> / <code>rejected</code></td>
+                        <td>$0, hold released</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <ul>
+            <li>
+                <b>Recovery re-POSTs with the same key and payload.</b>
+                Pixelforge guarantees a repeated key returns the original
+                generation and that keys never expire, so we don't need a lookup
+                endpoint. If the original arrived, the replay returns its
+                current state; if it didn't, the replay creates it.
+            </li>
+            <li>
+                <b><code>needs_reconciliation</code> is not terminal.</b> The
+                reconciler re-POSTs every 15 minutes until Pixelforge answers
+                definitively. A late webhook can resolve it at any time, and
+                it's billed exactly once through the same locked method.
+            </li>
+            <li>
+                <b>A 429 on a replay proves nothing.</b> Every retry counts
+                against the per-minute limit, so being rate-limited doesn't mean
+                the original never landed. It stays retryable and never fails
+                the row.
+            </li>
+            <li>
+                <b>No overwriting a success.</b> Setting <code>unknown</code> or
+                <code>needs_reconciliation</code> is a conditional
+                <code>UPDATE … WHERE status = 'pending'</code>. If a success
+                webhook landed while our POST was timing out, that update
+                matches nothing. A test reproduces exactly this race.
+            </li>
+            <li>
+                <b
+                    >The report's difference column is an alert, not an accepted
+                    loss.</b
+                >
+                The spend report also counts unresolved submissions, so credits
+                held on uncertain outcomes stay visible.
+            </li>
+        </ul>
+        <div class="commit">
+            <b>d8551c5</b> feat: apply pixelforge generation snapshots
+            idempotently <b>eeaa1fd</b> feat: submit generations through a
+            queued outbox job <b>f2ff71c</b> feat: receive and verify pixelforge
+            webhooks <b>f5c61f0</b> feat: reconcile stuck generations every
+            minute <b>fix</b>: never fail a submission whose outcome is unknown
+        </div>
+    </section>
+
+    <section class="step" id="s5">
+        <div class="step-head">
+            <span class="num">05</span>
+            <h2>Balances and the admin report</h2>
+            <span class="chip done">Done</span>
+        </div>
+        <p class="why">
+            <strong>Hold the maximum, charge the actual.</strong> The final cost
+            isn't known at submit time, so we reserve the most it could possibly
+            cost. A user can never go negative, and nobody is overcharged.
+        </p>
+        <h3>The ledger: one generation's life in credits</h3>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Ledger entry</th>
+                        <th>Amount</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>User buys credits</td>
+                        <td><code>purchase</code></td>
+                        <td class="n">+1.000000000000</td>
+                        <td class="n">1.000000000000</td>
+                    </tr>
+                    <tr>
+                        <td>Submits medium 1024×1024 (max $0.0875)</td>
+                        <td><code>hold</code></td>
+                        <td class="n">−0.087500000000</td>
+                        <td class="n">0.912500000000</td>
+                    </tr>
+                    <tr>
+                        <td>Pixelforge: <code>succeeded</code></td>
+                        <td><code>release</code></td>
+                        <td class="n">+0.087500000000</td>
+                        <td class="n">1.000000000000</td>
+                    </tr>
+                    <tr>
+                        <td>Actual cost $0.056515 × 1.25</td>
+                        <td><code>charge</code></td>
+                        <td class="n">−0.070643750000</td>
+                        <td class="n">0.929356250000</td>
+                    </tr>
+                    <tr class="total">
+                        <td>Same success delivered again</td>
+                        <td>nothing (unique index)</td>
+                        <td class="n">0</td>
+                        <td class="n">0.929356250000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <ul>
+            <li>
+                The balance is <code>SUM(amount)</code> over an append-only
+                ledger. It's never overwritten, so every cent can be traced to a
+                line.
+            </li>
+            <li>
+                A unique index on <code>(generation_id, type)</code> means
+                Postgres itself refuses a second hold, release or charge for one
+                generation.
+            </li>
+            <li>
+                Submitting locks the user row, checks
+                <code>balance ≥ maximum price</code> and writes the hold, all in
+                one transaction. Two tabs can't both spend the last dollar.
+            </li>
+            <li>
+                Settlement runs in the same transaction as the status change, in
+                both <code>ApplyGenerationSnapshot</code> and
+                <code>MarkGenerationAsFailed</code>, so status and money can
+                never disagree.
+            </li>
+        </ul>
+        <h3>The spend report</h3>
+        <ul>
+            <li>
+                Groups succeeded generations by
+                <b>UTC day of <code>completed_at</code></b
+                >. A generation started at 23:59:50 and finished after midnight
+                counts on the next day, the same day Pixelforge bills it.
+            </li>
+            <li>
+                Every day in the range is included, even with zero usage, so it
+                lines up row for row with <code>/v1/usage</code>. Each day shows
+                charged, provider cost, profit, a per-user breakdown,
+                Pixelforge's <code>cost_usd</code> and the difference. Per-user
+                totals are ranked by spend.
+            </li>
+            <li>
+                If <code>/v1/usage</code> is unavailable, the report still shows
+                our own numbers and marks the comparison unavailable.
+            </li>
+            <li>
+                Admins have an <code>is_admin</code> flag and a
+                <code>viewSpendReport</code> Gate. The buy-credits and report
+                pages arrive in step 6.
+            </li>
+        </ul>
+        <div class="commit">
+            <b>2deb2c6</b> feat: track credit balances with a hold and settle
+            ledger <b>f5ff22f</b> feat: build the admin spend report
+        </div>
+    </section>
+
+    <section class="step" id="s6">
+        <div class="step-head">
+            <span class="num">06</span>
+            <h2>InteriorIA: the interface</h2>
+            <span class="chip done">Done</span>
+        </div>
+        <p class="why">
+            <strong>The product:</strong> InteriorIA is an AI interior designer,
+            with Pixelforge as the engine behind it. The look is soloterm's blue
+            on an architect's blueprint grid, which reads as graph paper for
+            room plans.
+        </p>
+        <div class="grid2">
+            <div class="card">
+                <h3>One studio page</h3>
+                <p>
+                    The prompt form sits next to your designs. Room and style
+                    presets fill in the prompt, and inspiration photo URLs are
+                    optional. A collapsible panel inserts Pixelforge's test
+                    keywords, so reviewers can trigger every failure path.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Optimistic submit</h3>
+                <p>
+                    <code>&lt;Form :optimistic&gt;</code> inserts a "sending"
+                    card at the top of the feed and deducts the maximum price
+                    from the shown balance instantly. A validation error, such
+                    as not enough credits, rolls both back automatically.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Live without breaking the scroll</h3>
+                <p>
+                    <code>usePoll</code> runs only while something is in flight,
+                    in <code>rest</code> mode, paused in background tabs. It
+                    asks for an <code>Inertia::optional()</code> prop of just
+                    the watched cards and overlays them, so the
+                    infinite-scrolled history is never reset.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Exact estimate in the browser</h3>
+                <p>
+                    The estimate uses <code>BigInt</code> integer math (cost ×
+                    10⁸), so it matches the PHP side to the last digit:
+                    <code>0.46734375</code> for the docs' worst case. The server
+                    still recomputes on submit.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Inertia v3 features used</h3>
+                <p>
+                    <code>createForm&lt;T&gt;()</code> and
+                    <code>useFormContext&lt;T&gt;()</code> for typed forms, plus
+                    <code>Inertia::scroll</code> with
+                    <code>&lt;InfiniteScroll&gt;</code>. Stats and the report
+                    use <code>Inertia::defer</code>, and the report adds
+                    <code>rescue</code> with a retry button. Pricing is an
+                    <code>Inertia::once</code> prop. Navigation uses instant
+                    visits and prefetch, the draft persists through
+                    <code>useRemember</code>, and buying credits is an
+                    optimistic <code>router.optimistic()</code>.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Small pieces</h3>
+                <p>
+                    Pure helpers live in <code>lib/</code> (money, time, studio
+                    presets). Reactive logic lives in composables
+                    (<code>useCostEstimate</code>,
+                    <code>useGenerationFeed</code>, <code>useCredits</code>,
+                    <code>useNow</code>…). Components are grouped by feature,
+                    and pages only compose them. There are skeletons for every
+                    deferred or loading state, plus an empty state, and motion
+                    respects reduced-motion settings.
+                </p>
+            </div>
+        </div>
+        <p>
+            <b>Bug found on the way:</b> Laravel 13 refuses to unserialize
+            objects from the cache by default. The cached pricing DTO came back
+            as <code>__PHP_Incomplete_Class</code> on the database cache. The
+            tests use the in-memory array cache, which never serializes, so they
+            missed it. Pricing is now cached as the documented array shape, and
+            a regression test runs through the file cache.
+        </p>
+        <div class="commit">
+            <b>3fd1233</b> fix: cache pricing as plain arrays
+            <b>d99a5aa</b> feat: add studio, credit purchase and spend report
+            endpoints <b>7b5d322</b> feat: build the interioria studio and spend
+            report ui
+        </div>
+    </section>
+
+    <section class="step" id="s7">
+        <div class="step-head">
+            <span class="num">07</span>
+            <h2>Verify and deploy</h2>
+            <span class="chip todo">Pending</span>
+        </div>
+        <ul>
+            <li>
+                Pest feature tests for each failure mode above, plus Rector,
+                Pint and PHPStan max all clean.
+            </li>
+            <li>
+                Laravel Cloud: Postgres, a queue worker, the scheduler, and a
+                separate production API key with its own webhook URL, so
+                <code>/v1/usage</code> for that key reconciles with production
+                records only.
+            </li>
+        </ul>
+    </section>
+
+    <footer>
+        Every amount on this page is computed with the same rules the app uses.
+        Last updated after commit 7b5d322.
+    </footer>
+</div>
