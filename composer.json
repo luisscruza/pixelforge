@@ -15,9 +15,12 @@
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
-        "laravel/wayfinder": "^0.1.14"
+        "laravel/wayfinder": "^0.1.14",
+        "nunomaduro/essentials": "^1.2",
+        "saloonphp/laravel-plugin": "^5.0"
     },
     "require-dev": {
+        "driftingly/rector-laravel": "^2.7",
         "fakerphp/faker": "^1.24",
         "larastan/larastan": "^3.9",
         "laravel/boost": "^2.2",
@@ -28,7 +31,9 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9.3",
         "pestphp/pest": "^5.3",
-        "pestphp/pest-plugin-laravel": "^5.0"
+        "pestphp/pest-plugin-laravel": "^5.0",
+        "pestphp/pest-plugin-type-coverage": "^5.1",
+        "rector/rector": "^2.8"
     },
     "autoload": {
         "psr-4": {
@@ -56,9 +61,11 @@
             "@php artisan dev"
         ],
         "lint": [
+            "rector",
             "pint --parallel"
         ],
         "lint:check": [
+            "rector --dry-run",
             "pint --parallel --test"
         ],
         "ci:check": [
@@ -68,7 +75,7 @@
             "@test"
         ],
         "types:check": [
-            "phpstan analyse"
+            "phpstan analyse --memory-limit=1G"
         ],
         "test": [
             "@php artisan config:clear --ansi",
@@ -94,6 +101,9 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "test:type-coverage": [
+            "@php artisan test --type-coverage --min=100"
         ]
     },
     "extra": {
