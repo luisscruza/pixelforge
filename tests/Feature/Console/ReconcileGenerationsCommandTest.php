@@ -7,7 +7,7 @@ use Illuminate\Console\Scheduling\Schedule;
 
 it('reports what it reconciled', function (): void {
     $this->artisan('pixelforge:reconcile')
-        ->expectsOutputToContain('Re-submitted 0, abandoned 0, polled 0.')
+        ->expectsOutputToContain('Re-submitted 0, reconciled 0, polled 0.')
         ->assertSuccessful();
 });
 

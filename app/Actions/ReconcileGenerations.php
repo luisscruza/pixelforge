@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Data\ReconciliationResult;
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\PixelforgeConnector;
 use App\Http\Integrations\Pixelforge\PixelforgeException;
 use App\Jobs\SubmitGenerationJob;
@@ -17,14 +18,14 @@ final readonly class ReconcileGenerations
 {
     private const int STALE_AFTER_MINUTES = 2;
 
-    private const int ABANDON_PENDING_AFTER_MINUTES = 30;
+    private const int RECONCILE_EVERY_MINUTES = 15;
 
-    private const int MAX_POLLS_PER_RUN = 20;
+    private const int MAX_REQUESTS_PER_RUN = 20;
 
     public function __construct(
         private PixelforgeConnector $pixelforge,
         private ApplyGenerationSnapshot $applySnapshot,
-        private MarkGenerationAsFailed $markAsFailed,
+        private SubmitGeneration $submitGeneration,
     ) {
         //
     }
@@ -32,18 +33,18 @@ final readonly class ReconcileGenerations
     public function handle(): ReconciliationResult
     {
         return new ReconciliationResult(
-            resubmitted: $this->resubmitStalledPending(),
-            abandoned: $this->abandonExpiredPending(),
+            resubmitted: $this->resubmitStalledSubmissions(),
+            reconciled: $this->retryUnresolvedSubmissions(),
             polled: $this->pollStuckInFlight(),
         );
     }
 
-    private function resubmitStalledPending(): int
+    private function resubmitStalledSubmissions(): int
     {
         $stalled = Generation::query()
             ->where('status', GenerationStatus::Pending)
+            ->whereIn('submission_status', [SubmissionStatus::Submitting, SubmissionStatus::Unknown])
             ->where('updated_at', '<', now()->subMinutes(self::STALE_AFTER_MINUTES))
-            ->where('created_at', '>=', now()->subMinutes(self::ABANDON_PENDING_AFTER_MINUTES))
             ->get();
 
         $stalled->each(fn (Generation $generation): PendingDispatch => dispatch(new SubmitGenerationJob($generation)));
@@ -51,20 +52,29 @@ final readonly class ReconcileGenerations
         return $stalled->count();
     }
 
-    private function abandonExpiredPending(): int
+    private function retryUnresolvedSubmissions(): int
     {
-        $expired = Generation::query()
+        $unresolved = Generation::query()
             ->where('status', GenerationStatus::Pending)
-            ->where('created_at', '<', now()->subMinutes(self::ABANDON_PENDING_AFTER_MINUTES))
+            ->where('submission_status', SubmissionStatus::NeedsReconciliation)
+            ->where('submitted_at', '<', now()->subMinutes(self::RECONCILE_EVERY_MINUTES))
+            ->oldest('submitted_at')
+            ->limit(self::MAX_REQUESTS_PER_RUN)
             ->get();
 
-        $expired->each(fn (Generation $generation) => $this->markAsFailed->handle(
-            $generation,
-            'submission_failed',
-            'Pixelforge could not accept this generation. You were not charged.',
-        ));
+        $attempted = 0;
 
-        return $expired->count();
+        foreach ($unresolved as $generation) {
+            $attempted++;
+
+            try {
+                $this->submitGeneration->handle($generation);
+            } catch (PixelforgeException|FatalRequestException) {
+                break;
+            }
+        }
+
+        return $attempted;
     }
 
     private function pollStuckInFlight(): int
@@ -74,7 +84,7 @@ final readonly class ReconcileGenerations
             ->whereNotNull('pixelforge_id')
             ->where('updated_at', '<', now()->subMinutes(self::STALE_AFTER_MINUTES))
             ->oldest('updated_at')
-            ->limit(self::MAX_POLLS_PER_RUN)
+            ->limit(self::MAX_REQUESTS_PER_RUN)
             ->get();
 
         $polled = 0;

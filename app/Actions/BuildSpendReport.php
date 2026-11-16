@@ -8,8 +8,10 @@ use App\Data\SpendReport;
 use App\Data\SpendReportDay;
 use App\Data\SpendReportUserRow;
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\PixelforgeConnector;
 use App\Http\Integrations\Pixelforge\PixelforgeException;
+use App\Models\Generation;
 use App\Support\Decimal;
 use BcMath\Number;
 use Carbon\CarbonImmutable;
@@ -50,6 +52,10 @@ final readonly class BuildSpendReport
             days: $days,
             userTotals: $this->userTotals($rowsByDate),
             usageAvailable: $usage !== null,
+            unresolvedSubmissions: Generation::query()
+                ->where('status', GenerationStatus::Pending)
+                ->where('submission_status', SubmissionStatus::NeedsReconciliation)
+                ->count(),
         );
     }
 

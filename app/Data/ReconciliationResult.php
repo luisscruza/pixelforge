@@ -8,7 +8,7 @@ final readonly class ReconciliationResult
 {
     public function __construct(
         public int $resubmitted,
-        public int $abandoned,
+        public int $reconciled,
         public int $polled,
     ) {
         //

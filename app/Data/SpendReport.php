@@ -19,6 +19,7 @@ final readonly class SpendReport
         public array $days,
         public array $userTotals,
         public bool $usageAvailable,
+        public int $unresolvedSubmissions,
     ) {
         //
     }
@@ -53,6 +54,7 @@ final readonly class SpendReport
             'start_date' => $this->startDate->toDateString(),
             'end_date' => $this->endDate->toDateString(),
             'usage_available' => $this->usageAvailable,
+            'unresolved_submissions' => $this->unresolvedSubmissions,
             'totals' => [
                 'charged' => (string) $this->charged(),
                 'provider_cost' => (string) $this->providerCost(),

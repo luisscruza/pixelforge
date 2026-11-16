@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Actions\MarkGenerationAsFailed;
+use App\Actions\RecordUncertainSubmission;
 use App\Actions\SubmitGeneration;
+use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\PixelforgeException;
 use App\Models\Generation;
 use DateTimeInterface;
@@ -57,11 +58,7 @@ final class SubmitGenerationJob implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        resolve(MarkGenerationAsFailed::class)->handle(
-            $this->generation,
-            'submission_failed',
-            'Pixelforge could not accept this generation. You were not charged.',
-        );
+        resolve(RecordUncertainSubmission::class)->handle($this->generation, SubmissionStatus::NeedsReconciliation);
     }
 
     private function delayFor(?int $retryAfterSeconds): int

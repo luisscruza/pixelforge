@@ -6,9 +6,11 @@ namespace App\Actions;
 
 use App\Data\GenerationInput;
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\PixelforgeConnector;
 use App\Http\Integrations\Pixelforge\PixelforgeException;
 use App\Models\Generation;
+use Saloon\Exceptions\Request\FatalRequestException;
 
 final readonly class SubmitGeneration
 {
@@ -16,6 +18,7 @@ final readonly class SubmitGeneration
         private PixelforgeConnector $pixelforge,
         private ApplyGenerationSnapshot $applySnapshot,
         private MarkGenerationAsFailed $markAsFailed,
+        private RecordUncertainSubmission $recordUncertainSubmission,
     ) {
         //
     }
@@ -41,10 +44,18 @@ final readonly class SubmitGeneration
                 idempotencyKey: $generation->uuid,
                 metadata: [ApplyGenerationSnapshot::METADATA_KEY => $generation->uuid],
             );
-        } catch (PixelforgeException $pixelforgeException) {
-            throw_if($pixelforgeException->isRetryable(), $pixelforgeException);
+        } catch (FatalRequestException $exception) {
+            $this->recordUncertainSubmission->handle($generation, SubmissionStatus::Unknown);
 
-            $this->markAsFailed->handle($generation, $pixelforgeException->errorCode, $pixelforgeException->getMessage());
+            throw $exception;
+        } catch (PixelforgeException $exception) {
+            if ($exception->leavesOutcomeUnknown()) {
+                $this->recordUncertainSubmission->handle($generation, SubmissionStatus::Unknown);
+            }
+
+            throw_if($exception->isRetryable(), $exception);
+
+            $this->markAsFailed->handle($generation, $exception->errorCode, $exception->getMessage());
 
             return;
         }

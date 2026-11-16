@@ -17,7 +17,7 @@ final class ReconcileGenerationsCommand extends Command
     {
         $result = $reconcileGenerations->handle();
 
-        $this->components->info("Re-submitted {$result->resubmitted}, abandoned {$result->abandoned}, polled {$result->polled}.");
+        $this->components->info("Re-submitted {$result->resubmitted}, reconciled {$result->reconciled}, polled {$result->polled}.");
 
         return self::SUCCESS;
     }

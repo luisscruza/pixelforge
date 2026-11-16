@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\BuildSpendReport;
+use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\Requests\GetUsageRequest;
 use App\Models\Generation;
 use App\Models\User;
@@ -131,4 +132,12 @@ it('ranks users by what they spent across the range', function (): void {
 it('lets only admins view the spend report', function (): void {
     expect(User::factory()->admin()->create()->can('viewSpendReport'))->toBeTrue()
         ->and(User::factory()->create()->can('viewSpendReport'))->toBeFalse();
+});
+
+it('alerts on submissions still waiting for reconciliation', function (): void {
+    Generation::factory()->create(['submission_status' => SubmissionStatus::NeedsReconciliation]);
+    Generation::factory()->create(['submission_status' => SubmissionStatus::Unknown]);
+    fakeUsage([]);
+
+    expect(reportFor('2026-11-01', '2026-11-01')['unresolved_submissions'])->toBe(1);
 });

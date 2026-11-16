@@ -12,6 +12,8 @@ use App\Data\GenerationInput;
 use App\Enums\CreditTransactionType;
 use App\Enums\GenerationQuality;
 use App\Enums\GenerationSize;
+use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Models\Generation;
 use App\Models\User;
 use BcMath\Number;
@@ -110,3 +112,15 @@ it('refuses a second ledger entry of the same kind for one generation at the dat
         'amount' => '-0.0875',
     ]);
 })->throws(UniqueConstraintViolationException::class);
+
+it('bills a late success that resolves an unresolved submission exactly once', function (): void {
+    $user = User::factory()->withCredits('1')->create();
+    $generation = heldGeneration($user);
+    $generation->update(['submission_status' => SubmissionStatus::NeedsReconciliation]);
+
+    resolve(ApplyGenerationSnapshot::class)->handle(successFor($generation));
+    resolve(ApplyGenerationSnapshot::class)->handle(successFor($generation));
+
+    expect($generation->refresh()->status)->toBe(GenerationStatus::Succeeded)
+        ->and((string) resolve(GetCreditBalance::class)->handle($user))->toBe('0.929356250000');
+});

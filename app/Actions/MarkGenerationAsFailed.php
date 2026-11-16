@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Models\Generation;
 use BcMath\Number;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ final readonly class MarkGenerationAsFailed
 
             $locked->update([
                 'status' => GenerationStatus::Failed,
+                'submission_status' => SubmissionStatus::Rejected,
                 'provider_cost' => new Number(0),
                 'price' => new Number(0),
                 'error_code' => $errorCode,

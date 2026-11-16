@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Data\GenerationData;
 use App\Data\TokenUsage;
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Models\Generation;
 use BcMath\Number;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,7 @@ final readonly class ApplyGenerationSnapshot
             }
 
             $generation->pixelforge_id ??= $snapshot->id;
+            $generation->submission_status = SubmissionStatus::Accepted;
             $generation->rates ??= $snapshot->rates->toArray();
 
             if ($generation->status->canTransitionTo($snapshot->status)) {

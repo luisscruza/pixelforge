@@ -10,6 +10,7 @@ use App\Data\TokenUsage;
 use App\Enums\GenerationQuality;
 use App\Enums\GenerationSize;
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use BcMath\Number;
 use Carbon\CarbonImmutable;
 use Database\Factories\GenerationFactory;
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $user_id
  * @property string|null $pixelforge_id
  * @property GenerationStatus $status
+ * @property SubmissionStatus $submission_status
  * @property string $prompt
  * @property GenerationSize $size
  * @property GenerationQuality $quality
@@ -109,6 +111,7 @@ final class Generation extends Model
     {
         return [
             'status' => GenerationStatus::class,
+            'submission_status' => SubmissionStatus::class,
             'size' => GenerationSize::class,
             'quality' => GenerationQuality::class,
             'reference_images' => 'array',

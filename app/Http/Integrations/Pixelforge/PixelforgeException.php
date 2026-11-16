@@ -45,6 +45,11 @@ final class PixelforgeException extends RequestException
         );
     }
 
+    public function leavesOutcomeUnknown(): bool
+    {
+        return $this->getStatus() >= 500 && str_starts_with($this->errorCode, 'http_');
+    }
+
     public function isRetryable(): bool
     {
         return in_array($this->errorCode, self::RETRYABLE_CODES, true) || $this->getStatus() >= 500;

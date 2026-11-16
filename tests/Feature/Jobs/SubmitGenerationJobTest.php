@@ -2,11 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Actions\CreateGeneration;
+use App\Actions\GetCreditBalance;
 use App\Actions\SubmitGeneration;
+use App\Data\CostEstimate;
+use App\Data\GenerationInput;
+use App\Enums\GenerationQuality;
+use App\Enums\GenerationSize;
 use App\Enums\GenerationStatus;
+use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\Requests\CreateGenerationRequest;
 use App\Jobs\SubmitGenerationJob;
 use App\Models\Generation;
+use App\Models\User;
+use BcMath\Number;
+use Illuminate\Support\Facades\Queue;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Saloon\Http\Faking\MockResponse;
 use Saloon\Http\PendingRequest;
@@ -40,16 +50,22 @@ it('retries when pixelforge cannot be reached at all', function (): void {
     $job->assertReleased(delay: 2);
 });
 
-it('gives up after the retry window without charging the user', function (): void {
-    $generation = Generation::factory()->create();
+it('flags the generation for reconciliation instead of failing it when retries run out', function (): void {
+    $user = User::factory()->withCredits('1')->create();
+    Queue::fake();
+    $generation = resolve(CreateGeneration::class)->handle(
+        $user,
+        new GenerationInput('A lighthouse', GenerationSize::Square, GenerationQuality::Medium),
+        new CostEstimate(new Number('0.06'), new Number('0.07'), new Number('0.075'), new Number('0.0875')),
+    );
 
     new SubmitGenerationJob($generation)->failed(new RuntimeException('Max attempts'));
 
     $generation->refresh();
 
-    expect($generation->status)->toBe(GenerationStatus::Failed)
-        ->and($generation->error_code)->toBe('submission_failed')
-        ->and($generation->price?->compare(0))->toBe(0);
+    expect($generation->status)->toBe(GenerationStatus::Pending)
+        ->and($generation->submission_status)->toBe(SubmissionStatus::NeedsReconciliation)
+        ->and((string) resolve(GetCreditBalance::class)->handle($user))->toBe('0.912500000000');
 });
 
 it('does not overwrite a generation that finished while the job was giving up', function (): void {
