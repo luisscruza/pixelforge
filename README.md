@@ -115,10 +115,3 @@ npm run types:check
 ```
 
 Over 180 Pest tests cover the money paths end to end: exact pricing (including the docs' worst case), signed webhooks (forged, replayed, tampered, duplicated, out of order, early), retries and `Retry-After`, the timeout race, the ledger, reconciliation and the report.
-
-## Trade-offs
-
-- **Images aren't stored.** Pixelforge URLs expire after 24 hours, and the brief allows them to stop loading; the UI shows a "link expired" state.
-- **`GET /v1/generations` isn't used.** Replaying the POST with the same idempotency key resolves any uncertain submission without scanning the list.
-- **Rate limits are handled reactively** (`Retry-After` and backoff) rather than pre-throttled with `X-RateLimit-Remaining`, which is enough at this scale.
-- **The daily quota fails a render** instead of retrying after UTC midnight, so users aren't left waiting hours with credits on hold.
