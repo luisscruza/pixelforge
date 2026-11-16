@@ -2,7 +2,7 @@
 
 An AI interior designer built on the [Pixelforge](https://pixelforge.promptedit.dev/docs) image-generation API. Users describe a room, see exactly what it will cost before they submit, and pay Pixelforge's cost plus 25% only for renders that succeed. Operators get a revenue panel that reconciles every provider cent against Pixelforge's own usage report.
 
-**Live:** _deployment URL_ · **Stack:** Laravel 13, Inertia v3, Vue 3, Postgres, Saloon, Pest
+**Live:** [interioria-production-xxxvoh.laravel.cloud](https://interioria-production-xxxvoh.laravel.cloud) · **Stack:** Laravel 13, Inertia v3, Vue 3, Postgres, Saloon, Pest
 
 Built by [Luis De la Cruz](https://github.com/luisscruza).
 
