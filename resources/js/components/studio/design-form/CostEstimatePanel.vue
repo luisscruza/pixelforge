@@ -79,9 +79,9 @@ const changed = useFlashOnChange(() => props.estimate?.expected);
                 <div v-if="showBreakdown" class="space-y-2 px-4 pb-4">
                     <TokenBreakdown :tokens="estimate.tokens" />
                     <p class="text-xs leading-relaxed text-muted-foreground">
-                        Each token is priced at Pixelforge's published rate,
-                        plus a 25% studio fee. Ranges narrow to an exact count
-                        once your design is done.
+                        Each token is priced at the render engine's published
+                        rate, plus a 25% studio fee. Ranges narrow to an exact
+                        count once your design is done.
                     </p>
                 </div>
             </Transition>

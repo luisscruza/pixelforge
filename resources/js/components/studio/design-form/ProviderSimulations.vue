@@ -13,15 +13,15 @@ defineEmits<{
             class="flex cursor-pointer list-none items-center gap-1.5 text-muted-foreground select-none hover:text-foreground"
         >
             <FlaskConical class="size-3.5" />
-            Simulate provider behaviour
+            Test scenarios
             <span
                 class="ml-auto font-mono text-[10px] transition group-open:rotate-90"
                 >›</span
             >
         </summary>
         <p class="mt-2 text-muted-foreground">
-            Adds a Pixelforge test keyword to the prompt, so you can watch each
-            failure path play out.
+            Adds a keyword that makes the render engine act out a specific
+            outcome, so you can see how the studio handles it.
         </p>
         <div class="mt-2 flex flex-wrap gap-1.5">
             <button

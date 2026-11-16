@@ -16,7 +16,7 @@ const caption = computed(() => {
     }
 
     if (props.generation.is_confirming) {
-        return 'Confirming with Pixelforge…';
+        return 'Confirming your request…';
     }
 
     return props.generation.status === 'processing'

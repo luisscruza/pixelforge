@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { createForm } from '@inertiajs/vue3';
+import { createForm, usePage } from '@inertiajs/vue3';
 import type { PageProps } from '@inertiajs/core';
 import { LoaderCircle, Sparkles } from '@lucide/vue';
 import GenerationController from '@/actions/App/Http/Controllers/GenerationController';
@@ -33,6 +33,7 @@ const props = defineProps<{
 }>();
 
 const DesignFormComponent = createForm<GenerationForm>();
+const page = usePage();
 
 const draft = useRememberedState<GenerationForm>(
     { prompt: '', size: '1536x1024', quality: 'medium', reference_images: [] },
@@ -129,6 +130,7 @@ function resetDraft(): void {
         </div>
 
         <ProviderSimulations
+            v-if="page.props.auth.canViewSpendReport"
             @insert="
                 (keyword) =>
                     (draft.prompt = appendToPrompt(draft.prompt, keyword))
