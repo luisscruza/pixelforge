@@ -10,7 +10,9 @@ use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\PixelforgeConnector;
 use App\Http\Integrations\Pixelforge\PixelforgeException;
 use App\Models\Generation;
+use JsonException;
 use Saloon\Exceptions\Request\FatalRequestException;
+use UnexpectedValueException;
 
 final readonly class SubmitGeneration
 {
@@ -44,7 +46,7 @@ final readonly class SubmitGeneration
                 idempotencyKey: $generation->uuid,
                 metadata: [ApplyGenerationSnapshot::METADATA_KEY => $generation->uuid],
             );
-        } catch (FatalRequestException $exception) {
+        } catch (FatalRequestException|JsonException|UnexpectedValueException $exception) {
             $this->recordUncertainSubmission->handle($generation, SubmissionStatus::Unknown);
 
             throw $exception;

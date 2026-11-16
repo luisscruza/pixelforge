@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Actions\RecordUncertainSubmission;
+use App\Actions\AbandonSubmission;
 use App\Actions\SubmitGeneration;
-use App\Enums\SubmissionStatus;
 use App\Http\Integrations\Pixelforge\PixelforgeException;
 use App\Models\Generation;
 use DateTimeInterface;
@@ -14,8 +13,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use JsonException;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Throwable;
+use UnexpectedValueException;
 
 #[DeleteWhenMissingModels]
 final class SubmitGenerationJob implements ShouldQueue
@@ -51,14 +52,14 @@ final class SubmitGenerationJob implements ShouldQueue
             $submitGeneration->handle($this->generation);
         } catch (PixelforgeException $exception) {
             $this->release($this->delayFor($exception->retryAfterSeconds));
-        } catch (FatalRequestException) {
+        } catch (FatalRequestException|JsonException|UnexpectedValueException) {
             $this->release($this->delayFor(null));
         }
     }
 
     public function failed(?Throwable $exception): void
     {
-        resolve(RecordUncertainSubmission::class)->handle($this->generation, SubmissionStatus::NeedsReconciliation);
+        resolve(AbandonSubmission::class)->handle($this->generation);
     }
 
     private function delayFor(?int $retryAfterSeconds): int

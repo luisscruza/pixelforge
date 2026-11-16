@@ -137,3 +137,13 @@ it('does not overwrite a success that landed while our request was timing out', 
     expect($generation->refresh()->status)->toBe(GenerationStatus::Succeeded)
         ->and($generation->submission_status)->toBe(SubmissionStatus::Accepted);
 });
+
+it('treats a successful response it cannot read as an unknown outcome', function (): void {
+    $generation = Generation::factory()->create();
+    Saloon::fake([CreateGenerationRequest::class => MockResponse::make(['id' => 'gen_1', 'status' => 'teleporting'], 202)]);
+
+    expect(fn () => resolve(SubmitGeneration::class)->handle($generation))->toThrow(UnexpectedValueException::class);
+
+    expect($generation->refresh()->submission_status)->toBe(SubmissionStatus::Unknown)
+        ->and($generation->status)->toBe(GenerationStatus::Pending);
+});
