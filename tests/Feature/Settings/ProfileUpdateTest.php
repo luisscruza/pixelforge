@@ -32,7 +32,6 @@ test('profile information can be updated', function (): void {
 
     expect($user->name)->toBe('Test User');
     expect($user->email)->toBe('test@example.com');
-    expect($user->email_verified_at)->toBeNull();
 });
 
 test('email is stored in lowercase so the user can still log in', function (): void {
@@ -74,23 +73,6 @@ test('email must be unique regardless of case', function (): void {
     $response
         ->assertSessionHasErrors('email')
         ->assertRedirect(route('profile.edit'));
-});
-
-test('email verification status is unchanged when the email address is unchanged', function (): void {
-    $user = User::factory()->create();
-
-    $response = $this
-        ->actingAs($user)
-        ->patch(route('profile.update'), [
-            'name' => 'Test User',
-            'email' => $user->email,
-        ]);
-
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
-
-    expect($user->refresh()->email_verified_at)->not->toBeNull();
 });
 
 test('user can delete their account', function (): void {

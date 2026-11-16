@@ -11,7 +11,7 @@ use Inertia\Response;
 
 Route::get('/', fn (): Response => Inertia::render('Welcome'))->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function (): void {
+Route::middleware(['auth'])->group(function (): void {
     Route::redirect('dashboard', '/generations')->name('dashboard');
 
     Route::get('generations', [GenerationController::class, 'index'])->name('generations.index');
