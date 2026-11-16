@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Saloon\Config;
 use Saloon\Http\Faking\MockClient;
 use Tests\TestCase;
@@ -99,4 +100,36 @@ function pixelforgeRates(): array
         'output_tokens' => '40.00',
         'reasoning_tokens' => '12.50',
     ];
+}
+
+/**
+ * @param  array<string, mixed>  $generation
+ * @return array<string, mixed>
+ */
+function pixelforgeEvent(string $type, array $generation = [], ?string $id = null): array
+{
+    return [
+        'id' => $id ?? 'evt_'.Str::upper(Str::random(26)),
+        'object' => 'event',
+        'type' => $type,
+        'created_at' => '2026-11-04T14:03:29Z',
+        'data' => ['object' => $type === 'ping' ? null : pixelforgeGeneration($generation)],
+    ];
+}
+
+/**
+ * @param  array<string, mixed>  $event
+ */
+function sendPixelforgeWebhook(array $event, ?int $timestamp = null, string $secret = 'whsec_test', ?string $body = null): TestResponse
+{
+    $body ??= json_encode($event, JSON_THROW_ON_ERROR);
+    $timestamp ??= now()->getTimestamp();
+    $signature = hash_hmac('sha256', $timestamp.'.'.$body, $secret);
+
+    return test()->call('POST', '/webhooks/pixelforge', server: [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_ACCEPT' => 'application/json',
+        'HTTP_PIXELFORGE_EVENT_ID' => (string) ($event['id'] ?? ''),
+        'HTTP_PIXELFORGE_SIGNATURE' => "t={$timestamp},v1={$signature}",
+    ], content: $body);
 }
