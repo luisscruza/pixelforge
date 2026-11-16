@@ -4,7 +4,7 @@ import { ref } from 'vue';
 import BuyCreditsDialog from '@/components/credits/BuyCreditsDialog.vue';
 import { useCredits } from '@/composables/useCredits';
 import { useFlashOnChange } from '@/composables/useFlashOnChange';
-import { formatUsd } from '@/lib/money';
+import { formatBalance } from '@/lib/money';
 import { cn } from '@/lib/utils';
 
 const { balance } = useCredits();
@@ -24,7 +24,7 @@ const open = ref(false);
             "
             :title="`$${balance} available`"
         >
-            {{ formatUsd(balance, 2) }}
+            {{ formatBalance(balance) }}
         </span>
         <button
             type="button"

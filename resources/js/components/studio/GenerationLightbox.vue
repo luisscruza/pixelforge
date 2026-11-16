@@ -41,16 +41,12 @@ const open = defineModel<boolean>('open', { required: true });
                 <div class="flex items-start gap-4 text-right text-xs">
                     <div>
                         <p class="text-muted-foreground">Estimated</p>
-                        <MoneyValue
-                            :value="generation.estimated_price"
-                            :decimals="6"
-                        />
+                        <MoneyValue :value="generation.estimated_price" />
                     </div>
                     <div>
                         <p class="text-muted-foreground">Charged</p>
                         <MoneyValue
                             :value="generation.price"
-                            :decimals="6"
                             class="font-semibold"
                         />
                     </div>

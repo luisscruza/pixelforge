@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { CREDIT_PACKS, useCredits } from '@/composables/useCredits';
-import { formatUsd } from '@/lib/money';
+import { formatBalance } from '@/lib/money';
 import { cn } from '@/lib/utils';
 
 const open = defineModel<boolean>('open', { required: true });
@@ -30,7 +30,7 @@ function buy(amount: number): void {
                 <DialogDescription>
                     Credits are US dollars. You have
                     <span class="font-mono text-foreground">{{
-                        formatUsd(balance, 2)
+                        formatBalance(balance)
                     }}</span
                     >. This is a demo purchase, so no card is needed.
                 </DialogDescription>

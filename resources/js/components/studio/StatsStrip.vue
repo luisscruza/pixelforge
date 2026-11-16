@@ -40,7 +40,7 @@ defineProps<{
             </StatTile>
             <StatTile label="Total requests">{{ stats.total }}</StatTile>
             <StatTile label="Spent"
-                ><MoneyValue :value="stats.spent" :decimals="2"
+                ><MoneyValue :value="stats.spent"
             /></StatTile>
         </div>
     </Deferred>

@@ -69,15 +69,22 @@ export function isZero(value: string | null | undefined): boolean {
     );
 }
 
+const MIN_DISPLAY_DECIMALS = 2;
+
 export function formatUsd(
     value: string | null | undefined,
-    decimals = 4,
+    decimals?: number,
 ): string {
     if (value === null || value === undefined) {
         return '—';
     }
 
     const decimal = parseDecimal(value);
+
+    if (decimals === undefined) {
+        return formatExact(decimal);
+    }
+
     const absolute = decimal.units < 0n ? -decimal.units : decimal.units;
     let rounded: bigint;
 
@@ -91,6 +98,27 @@ export function formatUsd(
     const sign = decimal.units < 0n && rounded !== 0n ? '−' : '';
 
     return sign + '$' + toDecimalString({ units: rounded, scale: decimals });
+}
+
+export function formatBalance(value: string): string {
+    const decimal = parseDecimal(value);
+    const cents = rescale(decimal, 2);
+
+    return formatUsd(toDecimalString({ units: cents, scale: 2 }), 2);
+}
+
+function formatExact(decimal: Decimal): string {
+    const absolute = decimal.units < 0n ? -decimal.units : decimal.units;
+    const [whole, fraction = ''] = toDecimalString({
+        units: absolute,
+        scale: decimal.scale,
+    }).split('.');
+    const trimmed = fraction
+        .replace(/0+$/, '')
+        .padEnd(MIN_DISPLAY_DECIMALS, '0');
+    const sign = decimal.units < 0n ? '−' : '';
+
+    return sign + '$' + whole + '.' + trimmed;
 }
 
 export type Estimate = {
