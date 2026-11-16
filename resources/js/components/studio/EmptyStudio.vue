@@ -1,27 +1,48 @@
+<script setup lang="ts">
+import { ArrowLeft } from '@lucide/vue';
+import RoomIllustration from '@/components/marketing/RoomIllustration.vue';
+
+const HINTS = [
+    'Name the room and a style, like “a Japandi bedroom”',
+    'Mention materials and light: oak, linen, morning sun',
+    'Check the estimate, then press Design this room',
+];
+</script>
+
 <template>
-    <div
-        class="corner-marks flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-blueprint px-6 py-16 text-center"
-    >
-        <svg
-            viewBox="0 0 160 100"
-            class="w-40 text-primary"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.2"
-            aria-hidden="true"
-        >
-            <path d="M10 90 H150" />
-            <path d="M20 90 V30 L80 12 L140 30 V90" stroke-dasharray="3 3" />
-            <rect x="34" y="56" width="34" height="20" rx="3" />
-            <path d="M38 76 V82 M64 76 V82" />
-            <circle cx="112" cy="50" r="9" stroke-dasharray="2 2" />
-            <path d="M112 59 V90 M102 90 H122" />
-        </svg>
-        <div class="space-y-1">
-            <h3 class="font-semibold">Your first room is one prompt away</h3>
-            <p class="max-w-sm text-sm text-muted-foreground">
-                Describe a space, pick a format, and InteriorIA will draft it.
-                You'll see the estimate before you spend anything.
+    <div class="overflow-hidden border bg-white">
+        <div class="aspect-[3/1] border-b opacity-90">
+            <RoomIllustration cover />
+        </div>
+        <div class="space-y-5 p-6 md:p-8">
+            <div class="space-y-2">
+                <h3 class="text-2xl font-medium tracking-tight text-ink">
+                    Your first room is one prompt away
+                </h3>
+                <p class="max-w-md leading-relaxed text-muted-foreground">
+                    Describe a space in the form, pick a format and a finish,
+                    and your design will appear here. You'll see the price
+                    before you spend anything.
+                </p>
+            </div>
+            <ol class="space-y-2.5">
+                <li
+                    v-for="(hint, index) in HINTS"
+                    :key="hint"
+                    class="flex items-start gap-3 text-sm text-ink"
+                >
+                    <span
+                        class="grid size-5 shrink-0 place-items-center bg-accent text-xs font-medium text-accent-foreground"
+                    >
+                        {{ index + 1 }}
+                    </span>
+                    {{ hint }}
+                </li>
+            </ol>
+            <p
+                class="hidden items-center gap-1.5 text-sm font-medium text-primary lg:flex"
+            >
+                <ArrowLeft class="size-4" /> Start with the form on the left
             </p>
         </div>
     </div>

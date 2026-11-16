@@ -1,6 +1,13 @@
+<script setup lang="ts">
+defineProps<{
+    cover?: boolean;
+}>();
+</script>
+
 <template>
     <svg
         viewBox="0 0 480 300"
+        :preserveAspectRatio="cover ? 'xMidYMid slice' : 'xMidYMid meet'"
         class="size-full"
         role="img"
         aria-label="Illustration of a Japandi living room"
