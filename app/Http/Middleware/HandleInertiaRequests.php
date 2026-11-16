@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Actions\GetCreditBalance;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,7 +38,11 @@ final class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'canViewSpendReport' => $request->user()?->can('viewSpendReport') ?? false,
             ],
+            'credits' => fn (): ?string => $request->user() instanceof User
+                ? (string) resolve(GetCreditBalance::class)->handle($request->user())
+                : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
