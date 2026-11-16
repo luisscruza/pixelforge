@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class MarkGenerationAsFailed
 {
+    public function __construct(
+        private SettleGenerationCredits $settleCredits,
+    ) {
+        //
+    }
+
     public function handle(Generation $generation, string $errorCode, string $errorMessage): void
     {
         DB::transaction(function () use ($generation, $errorCode, $errorMessage): void {
@@ -28,6 +34,8 @@ final readonly class MarkGenerationAsFailed
                 'error_message' => $errorMessage,
                 'completed_at' => now(),
             ]);
+
+            $this->settleCredits->handle($locked);
         });
     }
 }

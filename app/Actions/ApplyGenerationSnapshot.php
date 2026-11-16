@@ -18,6 +18,7 @@ final readonly class ApplyGenerationSnapshot
     public function __construct(
         private CalculateProviderCost $calculateProviderCost,
         private ApplyMarkup $applyMarkup,
+        private SettleGenerationCredits $settleCredits,
     ) {
         //
     }
@@ -39,6 +40,8 @@ final readonly class ApplyGenerationSnapshot
             }
 
             $generation->save();
+
+            $this->settleCredits->handle($generation);
 
             return $generation;
         });

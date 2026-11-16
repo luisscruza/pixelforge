@@ -20,6 +20,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string $email
  * @property CarbonImmutable|null $email_verified_at
  * @property string $password
+ * @property bool $is_admin
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property CarbonImmutable|null $two_factor_confirmed_at
@@ -27,6 +28,7 @@ use Illuminate\Notifications\Notifiable;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Collection<int, Generation> $generations
+ * @property-read Collection<int, CreditTransaction> $creditTransactions
  */
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 final class User extends Authenticatable implements MustVerifyEmail
@@ -45,6 +47,14 @@ final class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<CreditTransaction, $this>
+     */
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -52,6 +62,7 @@ final class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
     }
 }
