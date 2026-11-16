@@ -43,7 +43,6 @@ final class HandleInertiaRequests extends Middleware
             'credits' => fn (): ?string => $request->user() instanceof User
                 ? (string) resolve(GetCreditBalance::class)->handle($request->user())
                 : null,
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
 }

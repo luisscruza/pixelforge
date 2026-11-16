@@ -13,9 +13,7 @@ const open = ref(false);
 </script>
 
 <template>
-    <div
-        class="flex items-center gap-1 rounded-full border bg-card p-1 pl-3 shadow-xs"
-    >
+    <div class="flex items-center gap-1 rounded border bg-white p-1 pl-3">
         <Wallet class="size-3.5 text-muted-foreground" />
         <span
             :class="
@@ -30,7 +28,7 @@ const open = ref(false);
         </span>
         <button
             type="button"
-            class="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-95"
+            class="inline-flex items-center gap-1 rounded-sm bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-95"
             @click="open = true"
         >
             <Plus class="size-3" /> Buy credits

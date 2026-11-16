@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/app/AppSidebarLayout.vue';
-import type { BreadcrumbItem } from '@/types';
-
-const { breadcrumbs = [] } = defineProps<{
-    breadcrumbs?: BreadcrumbItem[];
-}>();
+import AppTopbar from '@/components/shell/AppTopbar.vue';
+import { Toaster } from '@/components/ui/sonner';
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <slot />
-    </AppLayout>
+    <div class="flex min-h-svh flex-col bg-white">
+        <AppTopbar />
+        <main class="mx-auto flex w-full max-w-7xl flex-1 flex-col border-x">
+            <slot />
+        </main>
+        <Toaster position="bottom-right" />
+    </div>
 </template>
