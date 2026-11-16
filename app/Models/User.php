@@ -39,6 +39,13 @@ final class User extends Authenticatable implements MustVerifyEmail
     use Notifiable;
 
     /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_admin' => false,
+    ];
+
+    /**
      * @return HasMany<Generation, $this>
      */
     public function generations(): HasMany
