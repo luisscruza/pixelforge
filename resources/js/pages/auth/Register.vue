@@ -16,8 +16,9 @@ defineProps<{
 
 defineOptions({
     layout: {
-        title: 'Create an account',
-        description: 'Enter your details below to create your account',
+        title: 'Create your studio',
+        description:
+            'One account, pay-as-you-go credits. Your first room is a few cents away.',
     },
 });
 </script>

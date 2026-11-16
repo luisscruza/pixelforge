@@ -14,8 +14,8 @@ import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'Welcome back',
+        description: 'Log in to pick up where you left off in the studio.',
     },
 });
 
@@ -95,13 +95,15 @@ defineProps<{
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Log in
+                {{ processing ? 'Logging in…' : 'Log in' }}
             </Button>
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+            New to InteriorIA?
+            <TextLink :href="register()" :tabindex="5"
+                >Create an account</TextLink
+            >
         </div>
     </Form>
 </template>
