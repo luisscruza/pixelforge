@@ -6,8 +6,6 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Inertia\Response;
 
 Route::middleware(['auth'])->group(function (): void {
     Route::redirect('settings', '/settings/profile');
@@ -27,5 +25,4 @@ Route::middleware(['auth'])->group(function (): void {
         ->middleware('throttle:6,1')
         ->name('user-password.update');
 
-    Route::get('settings/appearance', fn (): Response => Inertia::render('settings/Appearance'))->name('appearance.edit');
 });
