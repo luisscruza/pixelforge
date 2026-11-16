@@ -76,6 +76,8 @@ final class GenerationFactory extends Factory
     {
         return $this->processing()->state(fn (): array => [
             'status' => GenerationStatus::Failed,
+            'provider_cost' => '0',
+            'price' => '0',
             'error_code' => 'generation_failed',
             'error_message' => 'The model could not produce an image for this prompt.',
             'completed_at' => now(),

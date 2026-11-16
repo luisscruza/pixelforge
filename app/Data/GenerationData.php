@@ -41,6 +41,8 @@ final readonly class GenerationData
 
         throw_if(! $status instanceof GenerationStatus || $status === GenerationStatus::Pending, UnexpectedValueException::class, 'Pixelforge returned an unknown generation status.');
 
+        throw_if($status === GenerationStatus::Succeeded && ! $data->filled('usage'), UnexpectedValueException::class, 'Pixelforge returned a succeeded generation without usage.');
+
         return new self(
             id: $data->string('id')->value(),
             status: $status,
