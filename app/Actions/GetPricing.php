@@ -10,6 +10,8 @@ use Illuminate\Contracts\Cache\Repository;
 
 final readonly class GetPricing
 {
+    private const string CACHE_KEY = 'pixelforge.pricing';
+
     private const int CACHE_SECONDS = 300;
 
     public function __construct(
@@ -21,10 +23,10 @@ final readonly class GetPricing
 
     public function handle(): PricingData
     {
-        return $this->cache->remember(
-            'pixelforge.pricing',
+        return PricingData::fromArray($this->cache->remember(
+            self::CACHE_KEY,
             self::CACHE_SECONDS,
-            fn (): PricingData => $this->pixelforge->pricing(),
-        );
+            fn (): array => $this->pixelforge->pricing()->toArray(),
+        ));
     }
 }

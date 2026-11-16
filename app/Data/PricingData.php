@@ -57,6 +57,23 @@ final readonly class PricingData
         );
     }
 
+    /**
+     * @return array{rates: array<string, string>, tokens: array{characters_per_text_token: int, text_token_variance: string, per_reference_image: int, output: array<string, array<string, int>>, reasoning: array<string, array{min: int, max: int}>}}
+     */
+    public function toArray(): array
+    {
+        return [
+            'rates' => $this->rates->toArray(),
+            'tokens' => [
+                'characters_per_text_token' => $this->charactersPerTextToken,
+                'text_token_variance' => (string) $this->textTokenVariance,
+                'per_reference_image' => $this->tokensPerReferenceImage,
+                'output' => $this->outputTokens,
+                'reasoning' => $this->reasoningTokens,
+            ],
+        ];
+    }
+
     public function outputTokens(GenerationQuality $quality, GenerationSize $size): int
     {
         return $this->outputTokens[$quality->value][$size->value];
