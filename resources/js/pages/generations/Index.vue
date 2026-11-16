@@ -5,19 +5,12 @@ import GenerationCardSkeleton from '@/components/studio/GenerationCardSkeleton.v
 import GenerationFeed from '@/components/studio/GenerationFeed.vue';
 import StatsStrip from '@/components/studio/StatsStrip.vue';
 import { useGenerationFeed } from '@/composables/useGenerationFeed';
-import { index } from '@/routes/generations';
 import type {
     Generation,
     GenerationStats,
     Pricing,
     ResourceCollection,
 } from '@/types/generation';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [{ title: 'Studio', href: index() }],
-    },
-});
 
 const props = defineProps<{
     generations?: ResourceCollection<Generation>;
@@ -37,56 +30,56 @@ const { items, polling } = useGenerationFeed(
 <template>
     <Head title="Studio" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <header class="flex flex-wrap items-end justify-between gap-3">
-            <div>
-                <p
-                    class="font-mono text-[11px] tracking-[0.2em] text-primary uppercase"
-                >
-                    InteriorIA · Studio
-                </p>
-                <h1
-                    class="text-2xl font-semibold tracking-tight text-balance md:text-3xl"
-                >
-                    Design a room in one prompt
-                </h1>
-            </div>
-            <span
-                v-if="polling"
-                class="inline-flex items-center gap-2 font-mono text-[11px] text-muted-foreground"
+    <header class="space-y-8 border-b px-4 pt-12 pb-10 md:px-10">
+        <div class="max-w-2xl space-y-3">
+            <p class="text-sm font-medium text-primary">Studio</p>
+            <h1
+                class="text-4xl leading-[1.05] font-medium tracking-tight text-balance text-ink md:text-5xl"
             >
-                <span
-                    class="size-1.5 animate-pulse-dot rounded-full bg-primary text-primary"
-                />
-                Live
-            </span>
-        </header>
-
+                What room are we designing today?
+            </h1>
+            <p class="font-light text-muted-foreground">
+                Describe it on the left. Your designs appear on the right and
+                update live while they render.
+            </p>
+        </div>
         <StatsStrip :stats="stats" />
+    </header>
 
-        <div
-            class="grid items-start gap-6 lg:grid-cols-[minmax(340px,400px)_1fr]"
+    <div class="grid flex-1 lg:grid-cols-[440px_1fr]">
+        <section
+            class="border-b px-4 py-8 md:px-10 lg:border-r lg:border-b-0"
+            aria-label="New design"
         >
-            <section
-                class="rounded-xl border bg-card p-5 shadow-xs lg:sticky lg:top-4"
-                aria-label="New design"
-            >
+            <div class="lg:sticky lg:top-24">
                 <DesignForm
                     :pricing="pricing"
                     :markup="markup ?? '1.25'"
                     :max-reference-images="maxReferenceImages ?? 4"
                 />
-            </section>
+            </div>
+        </section>
 
-            <section aria-label="Your designs" class="min-w-0">
-                <GenerationFeed v-if="generations" :items="items" />
-                <div v-else class="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-                    <GenerationCardSkeleton
-                        v-for="skeleton in 6"
-                        :key="skeleton"
+        <section
+            class="min-w-0 bg-sand/60 px-4 py-8 md:px-8"
+            aria-label="Your designs"
+        >
+            <div class="mb-5 flex items-center justify-between">
+                <h2 class="text-sm font-medium text-ink">Your designs</h2>
+                <span
+                    v-if="polling"
+                    class="inline-flex items-center gap-2 text-xs text-muted-foreground"
+                >
+                    <span
+                        class="size-1.5 animate-pulse-dot rounded-full bg-primary text-primary"
                     />
-                </div>
-            </section>
-        </div>
+                    Updating live
+                </span>
+            </div>
+            <GenerationFeed v-if="generations" :items="items" />
+            <div v-else class="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                <GenerationCardSkeleton v-for="skeleton in 4" :key="skeleton" />
+            </div>
+        </section>
     </div>
 </template>

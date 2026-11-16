@@ -12,16 +12,22 @@ defineProps<{
 <template>
     <Deferred data="stats">
         <template #fallback>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div class="grid grid-cols-2 border-t border-l sm:grid-cols-4">
                 <div
                     v-for="tile in 4"
                     :key="tile"
-                    class="h-[68px] skeleton-shimmer rounded-lg"
-                />
+                    class="space-y-2.5 border-r border-b bg-white px-5 py-4"
+                >
+                    <div class="h-3 w-20 skeleton-shimmer" />
+                    <div class="h-6 w-12 skeleton-shimmer" />
+                </div>
             </div>
         </template>
 
-        <div v-if="stats" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div
+            v-if="stats"
+            class="grid grid-cols-2 border-t border-l sm:grid-cols-4"
+        >
             <StatTile label="Rooms designed">{{ stats.succeeded }}</StatTile>
             <StatTile label="In the studio">
                 <span class="inline-flex items-center gap-2">

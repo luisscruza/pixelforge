@@ -27,7 +27,7 @@ defineProps<{
             </p>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="grid grid-cols-2 border-t border-l lg:grid-cols-4">
             <StatTile label="Charged to users"
                 ><MoneyValue :value="report.totals.charged"
             /></StatTile>

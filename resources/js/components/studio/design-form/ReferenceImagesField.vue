@@ -38,7 +38,9 @@ function errorFor(index: number): string | undefined {
 <template>
     <div class="space-y-2">
         <div class="flex items-baseline justify-between">
-            <span class="text-sm font-medium">Inspiration photos</span>
+            <span class="text-xs text-muted-foreground"
+                >A mood board helps match a style</span
+            >
             <span class="font-mono text-[10px] text-muted-foreground"
                 >{{ tokensPerImage }} tokens each · up to {{ max }}</span
             >

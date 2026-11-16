@@ -12,8 +12,8 @@ const model = defineModel<T>({ required: true });
 </script>
 
 <template>
-    <fieldset class="space-y-2">
-        <legend class="mb-2 text-sm font-medium">{{ legend }}</legend>
+    <fieldset>
+        <legend class="sr-only">{{ legend }}</legend>
         <div class="grid grid-cols-3 gap-2">
             <label
                 v-for="option in options"

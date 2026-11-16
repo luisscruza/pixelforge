@@ -5,12 +5,12 @@ defineProps<{
 </script>
 
 <template>
-    <div class="rounded-lg border bg-card px-4 py-3">
+    <div class="border-r border-b bg-white px-5 py-4">
+        <p class="text-xs text-muted-foreground">{{ label }}</p>
         <p
-            class="font-mono text-[10px] tracking-wider text-muted-foreground uppercase"
+            class="mt-1 text-2xl font-medium tracking-tight text-ink tabular-nums"
         >
-            {{ label }}
+            <slot />
         </p>
-        <p class="mt-1 text-xl font-semibold tabular-nums"><slot /></p>
     </div>
 </template>

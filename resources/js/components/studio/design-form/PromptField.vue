@@ -21,9 +21,7 @@ function add(preset: string): void {
 
 <template>
     <div class="space-y-2">
-        <label for="prompt" class="text-sm font-medium"
-            >Describe the room</label
-        >
+        <label for="prompt" class="sr-only">Describe the room</label>
         <div class="relative">
             <textarea
                 id="prompt"

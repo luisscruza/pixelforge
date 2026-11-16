@@ -4,6 +4,7 @@ import type { PageProps } from '@inertiajs/core';
 import { LoaderCircle, Sparkles } from '@lucide/vue';
 import GenerationController from '@/actions/App/Http/Controllers/GenerationController';
 import CostEstimatePanel from '@/components/studio/design-form/CostEstimatePanel.vue';
+import FormStep from '@/components/studio/design-form/FormStep.vue';
 import OptionGroup from '@/components/studio/design-form/OptionGroup.vue';
 import PromptField from '@/components/studio/design-form/PromptField.vue';
 import ProviderSimulations from '@/components/studio/design-form/ProviderSimulations.vue';
@@ -76,43 +77,56 @@ function resetDraft(): void {
         v-bind="GenerationController.store.form()"
         :optimistic="optimistic"
         :options="{ preserveScroll: true, reset: ['generations'] }"
-        class="space-y-5"
+        class="space-y-7"
         #default="{ processing }"
         @success="resetDraft"
     >
-        <PromptField v-model="draft.prompt" />
+        <FormStep :number="1" title="Describe the room">
+            <PromptField v-model="draft.prompt" />
+        </FormStep>
 
-        <OptionGroup
-            v-model="draft.size"
-            name="size"
-            legend="Format"
-            :options="SIZE_OPTIONS"
-        />
-        <OptionGroup
-            v-model="draft.quality"
-            name="quality"
-            legend="Finish"
-            :options="QUALITY_OPTIONS"
-        />
+        <FormStep :number="2" title="Format">
+            <OptionGroup
+                v-model="draft.size"
+                name="size"
+                legend="Format"
+                :options="SIZE_OPTIONS"
+            />
+        </FormStep>
 
-        <ReferenceImagesField
-            v-model="draft.reference_images"
-            :max="maxReferenceImages"
-            :tokens-per-image="pricing?.tokens.per_reference_image ?? 765"
-        />
+        <FormStep :number="3" title="Finish">
+            <OptionGroup
+                v-model="draft.quality"
+                name="quality"
+                legend="Finish"
+                :options="QUALITY_OPTIONS"
+            />
+        </FormStep>
 
-        <CostEstimatePanel :estimate="estimate" :affordable="affordable" />
+        <FormStep :number="4" title="Inspiration photos" optional>
+            <ReferenceImagesField
+                v-model="draft.reference_images"
+                :max="maxReferenceImages"
+                :tokens-per-image="pricing?.tokens.per_reference_image ?? 765"
+            />
+        </FormStep>
 
-        <Button
-            type="submit"
-            size="lg"
-            class="w-full transition active:scale-[0.99]"
-            :disabled="processing || !affordable || draft.prompt.trim() === ''"
-        >
-            <LoaderCircle v-if="processing" class="animate-spin" />
-            <Sparkles v-else />
-            {{ processing ? 'Sending to the studio…' : 'Design this room' }}
-        </Button>
+        <div class="space-y-3 border-t pt-6">
+            <CostEstimatePanel :estimate="estimate" :affordable="affordable" />
+
+            <Button
+                type="submit"
+                size="lg"
+                class="h-11 w-full text-[15px] transition active:scale-[0.99]"
+                :disabled="
+                    processing || !affordable || draft.prompt.trim() === ''
+                "
+            >
+                <LoaderCircle v-if="processing" class="animate-spin" />
+                <Sparkles v-else />
+                {{ processing ? 'Sending to the studio…' : 'Design this room' }}
+            </Button>
+        </div>
 
         <ProviderSimulations
             @insert="

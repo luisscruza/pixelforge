@@ -7,14 +7,7 @@ import ReportSkeleton from '@/components/report/ReportSkeleton.vue';
 import ReportSummary from '@/components/report/ReportSummary.vue';
 import ReportUsersTable from '@/components/report/ReportUsersTable.vue';
 import { Button } from '@/components/ui/button';
-import { index } from '@/routes/admin/spend-report';
 import type { SpendReport } from '@/types/generation';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [{ title: 'Spend report', href: index() }],
-    },
-});
 
 defineProps<{
     filters?: { start_date: string; end_date: string };
@@ -26,14 +19,14 @@ defineProps<{
 <template>
     <Head title="Spend report" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <header class="space-y-1">
-            <p
-                class="font-mono text-[11px] tracking-[0.2em] text-primary uppercase"
-            >
+    <div class="flex flex-1 flex-col gap-8 px-4 py-12 md:px-10">
+        <header class="space-y-3">
+            <p class="text-sm font-medium text-primary">
                 Operators · Reconciliation
             </p>
-            <h1 class="text-2xl font-semibold tracking-tight md:text-3xl">
+            <h1
+                class="text-4xl leading-[1.05] font-medium tracking-tight text-ink md:text-5xl"
+            >
                 Credit spend, provider cost & profit
             </h1>
             <p class="max-w-2xl text-sm text-muted-foreground">
